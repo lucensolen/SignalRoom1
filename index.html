@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SIGNAL ROOM | High-Walker Division</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-sr-body text-sr-cream min-h-screen flex items-center justify-center">
+  <canvas id="srBackground" class="sr-bg-canvas"></canvas>
+
+  <div id="app" class="sr-shell max-w-6xl w-full mx-4 md:mx-8 relative z-10">
+    <!-- Top bar -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+      <div class="flex items-center gap-3">
+        <img src="assets/logo.svg" alt="Signal Room logo" class="w-9 h-9 md:w-10 md:h-10 opacity-90" />
+        <div>
+          <h1 class="text-2xl md:text-3xl tracking-[0.25em] uppercase font-semibold">
+            SIGNAL <span class="text-sr-accent">Room</span>
+          </h1>
+          <p class="text-xs md:text-sm text-sr-muted mt-1">
+            High-Walker Division &mdash; get tuned, get edge.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 self-start md:self-auto">
+        <div class="sr-pill text-[0.7rem] md:text-xs flex items-center gap-2">
+          <span class="opacity-70">Streak</span>
+          <span id="streakValue" class="font-semibold text-sr-accent">0</span>
+          <span class="opacity-60">sessions</span>
+        </div>
+        <button id="resetStreakBtn" class="sr-pill text-[0.7rem] md:text-xs hover:bg-sr-pill/90">
+          reset
+        </button>
+      </div>
+    </header>
+
+    <!-- Core layout -->
+    <main class="grid xl:grid-cols-[1.15fr_0.85fr] gap-5 md:gap-7 items-stretch">
+      <!-- Left: State tuner + live beam + pulse -->
+      <section class="sr-panel flex flex-col gap-4">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <p class="text-[0.7rem] uppercase tracking-[0.25em] text-sr-muted">
+              state tuner
+            </p>
+            <h2 id="stateLabel" class="text-lg md:text-xl font-semibold">
+              Flatline &rarr; lift
+            </h2>
+          </div>
+          <div class="text-right">
+            <p class="text-[0.65rem] uppercase tracking-[0.2em] text-sr-muted">
+              charge
+            </p>
+            <p id="stateValue" class="text-sm font-semibold">32%</p>
+          </div>
+        </div>
+
+        <!-- Beam + slider -->
+        <div class="mt-1">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-[0.65rem] text-sr-muted uppercase tracking-[0.2em]">
+              live beam
+            </p>
+            <button id="audioToggle" class="sr-pill text-[0.65rem] flex items-center gap-1">
+              <span id="audioStatusDot" class="w-2 h-2 rounded-full bg-sr-muted"></span>
+              <span id="audioStatusLabel">Mic-reactive: off</span>
+            </button>
+          </div>
+
+          <div class="sr-beam mb-3">
+            <div id="beamFill" class="sr-beam-fill"></div>
+            <div class="sr-beam-glow"></div>
+          </div>
+
+          <input
+            id="stateSlider"
+            type="range"
+            min="0"
+            max="100"
+            value="32"
+            class="sr-slider w-full"
+          />
+
+          <div class="flex justify-between text-[0.6rem] text-sr-muted mt-1 uppercase tracking-[0.18em]">
+            <span>low</span>
+            <span>lift-off</span>
+          </div>
+        </div>
+
+        <!-- Quick pulse -->
+        <div class="mt-3">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-[0.7rem] uppercase tracking-[0.25em] text-sr-muted">
+              20-second signal check
+            </p>
+            <p id="lastLogged" class="text-[0.65rem] text-sr-muted text-right max-w-[55%]">
+              No pulses logged yet.
+            </p>
+          </div>
+          <textarea
+            id="pulseNote"
+            class="sr-input w-full text-xs md:text-sm"
+            rows="3"
+            placeholder="One line on how you actually feel. No filters, no performance."
+          ></textarea>
+          <div class="flex items-center justify-between mt-2">
+            <button id="logPulseBtn" class="sr-button">
+              Log pulse
+            </button>
+            <p id="pulseTone" class="text-[0.65rem] text-sr-muted text-right">
+              Tone: &mdash;
+            </p>
+          </div>
+        </div>
+
+        <!-- Pulse history preview -->
+        <div class="mt-2 pt-2 border-t border-white/5">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-[0.65rem] uppercase tracking-[0.22em] text-sr-muted">
+              recent pulses
+            </p>
+            <button id="clearPulsesBtn" class="text-[0.6rem] text-sr-muted hover:text-sr-cream">
+              clear
+            </button>
+          </div>
+          <ul id="pulseHistory" class="space-y-1 max-h-24 overflow-y-auto text-[0.7rem] text-sr-muted"></ul>
+        </div>
+      </section>
+
+      <!-- Right: Modes + Mic generator -->
+      <section class="flex flex-col gap-4">
+        <!-- Mode selector -->
+        <div class="sr-panel flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[0.7rem] uppercase tracking-[0.25em] text-sr-muted">
+                edge modes
+              </p>
+              <h2 id="modeTitle" class="text-lg md:text-xl font-semibold">
+                Pick your signal.
+              </h2>
+            </div>
+            <p id="modeTag" class="text-[0.65rem] text-sr-muted text-right max-w-[40%]">
+              Hype, focus, or night drift. Each one gives you live mini-missions.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 mt-2">
+            <button class="sr-mode-button" data-mode="hype">
+              Hype
+            </button>
+            <button class="sr-mode-button" data-mode="focus">
+              Focus
+            </button>
+            <button class="sr-mode-button" data-mode="drift">
+              Night Drift
+            </button>
+          </div>
+
+          <div class="mt-3">
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-[0.7rem] uppercase tracking-[0.25em] text-sr-muted">
+                mini-missions
+              </p>
+              <button id="rerollMissionsBtn" class="text-[0.6rem] text-sr-muted hover:text-sr-cream">
+                reroll
+              </button>
+            </div>
+            <ul id="missionList" class="space-y-1 text-xs md:text-sm text-sr-muted">
+              <li class="opacity-70">Choose a mode to generate your missions.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Mic generator -->
+        <div class="sr-panel flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[0.7rem] uppercase tracking-[0.25em] text-sr-muted">
+                mic moment
+              </p>
+              <h2 class="text-lg md:text-xl font-semibold">
+                One bar, pure state.
+              </h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="copyBarBtn" class="sr-pill text-[0.7rem] md:text-xs">
+                copy
+              </button>
+              <button id="lockBarBtn" class="sr-pill text-[0.7rem] md:text-xs">
+                lock
+              </button>
+            </div>
+          </div>
+
+          <p id="micBar" class="text-sm md:text-base leading-relaxed sr-mic-text">
+            Hit “Roll bar” and get a line that fits the Signal Room frequency.
+          </p>
+
+          <div class="flex items-center justify-between mt-1">
+            <button id="rollBarBtn" class="sr-button">
+              Roll bar
+            </button>
+            <p id="barMood" class="text-[0.65rem] text-sr-muted text-right">
+              Mood: idle
+            </p>
+          </div>
+
+          <div class="mt-2 pt-2 border-t border-white/5">
+            <p class="text-[0.65rem] text-sr-muted mb-1">
+              Locked lines stay in your browser only. No upload, no cloud.
+            </p>
+            <ul id="lockedBars" class="space-y-1 text-[0.7rem] text-sr-muted max-h-20 overflow-y-auto"></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+      <p class="text-[0.65rem] text-sr-muted">
+        High-Walker Division · Part of the Lucen field · Local to your state.
+      </p>
+      <p class="text-[0.65rem] text-sr-muted text-right">
+        Stay tuned. Stay true.
+        <span class="inline-block translate-y-[-1px] text-xs">^</span>
+      </p>
+    </footer>
+  </div>
+
+  <script src="js/audio-reactive.js"></script>
+  <script src="js/app.js"></script>
+</body>
+  </html>
